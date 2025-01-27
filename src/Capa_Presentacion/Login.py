@@ -3,9 +3,9 @@ import os
 from typing import Optional
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
-    QCheckBox, QSpacerItem, QSizePolicy, QMessageBox, QAction
+    QCheckBox, QSpacerItem, QSizePolicy, QMessageBox
 )
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont, QIcon, QAction
 from PyQt6.QtCore import Qt
 
 from src.Capa_Negocio.negUsuarios import NegUsuarios
@@ -87,6 +87,25 @@ class ModernLogin(QWidget):
         self._add_titles(layout)
         self._add_spacer(layout)
 
+    def _add_logo(self, layout: QVBoxLayout):
+        """Add the logo to the layout."""
+        logo_label = QLabel("🔵 ToDO-LIST")
+        logo_label.setFont(QFont("Arial", 22, QFont.Weight.Bold))
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(logo_label)
+
+    def _add_titles(self, layout: QVBoxLayout):
+        """Add titles to the layout."""
+        title_label = QLabel("Log in to your Account")
+        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+
+        subtitle_label = QLabel("Welcome back! Select method to log in:")
+        subtitle_label.setFont(QFont("Arial", 10))
+        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(subtitle_label)
+
     def _setup_social_login_section(self, layout: QVBoxLayout):
         """Set up the social login buttons section."""
         social_layout = QHBoxLayout()
@@ -95,6 +114,20 @@ class ModernLogin(QWidget):
         layout.addLayout(social_layout)
         self._add_separator(layout)
 
+    def _create_social_button(self, layout: QHBoxLayout, text: str, icon_name: str):
+        """Create a social login button."""
+        button = QPushButton(text)
+        button.setIcon(QIcon(self._get_resource_path(icon_name)))
+        button.setStyleSheet(self.STYLES['BUTTON'])
+        layout.addWidget(button)
+
+    def _add_separator(self, layout: QVBoxLayout):
+        """Add a separator label."""
+        separator_label = QLabel("OR CONTINUE WITH EMAIL")
+        separator_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        separator_label.setStyleSheet("color: gray; margin-top: 10px; margin-bottom: 10px;")
+        layout.addWidget(separator_label)
+
     def _setup_email_login_section(self, layout: QVBoxLayout):
         """Set up the email login section with input fields."""
         self.email_input = self._create_input_field("Email", "UserMale.png")
@@ -102,11 +135,6 @@ class ModernLogin(QWidget):
         layout.addWidget(self.email_input)
         layout.addWidget(self.password_input)
         self._setup_login_options(layout)
-
-    def _setup_footer_section(self, layout: QVBoxLayout):
-        """Set up the footer section with login button and create account link."""
-        self._add_login_button(layout)
-        self._add_create_account_link(layout)
 
     def _create_input_field(self, placeholder: str, icon_name: str, is_password: bool = False) -> QLineEdit:
         """Create an input field with the specified properties."""
@@ -129,6 +157,33 @@ class ModernLogin(QWidget):
         options_layout.addWidget(self.forgot_password)
         layout.addLayout(options_layout)
 
+    def _create_link_label(self, text: str, margin_left: str = "0px") -> QLabel:
+        """Create a clickable link label."""
+        label = QLabel(f'<a href="#">{text}</a>')
+        label.setOpenExternalLinks(True)
+        label.setStyleSheet(f"color: #0078D7; font-size: 14px; margin-left: {margin_left};")
+        return label
+
+    def _setup_footer_section(self, layout: QVBoxLayout):
+        """Set up the footer section with login button and create account link."""
+        self._add_login_button(layout)
+        self._add_create_account_link(layout)
+
+    def _add_login_button(self, layout: QVBoxLayout):
+        """Add the login button to the layout."""
+        self.login_button = QPushButton("Log in")
+        self.login_button.setStyleSheet(self.STYLES['LOGIN_BUTTON'])
+        self.login_button.clicked.connect(self.on_login_clicked)
+        layout.addWidget(self.login_button)
+
+    def _add_create_account_link(self, layout: QVBoxLayout):
+        """Add the create account link to the layout."""
+        create_account_label = QLabel("Don't have an account? <a href='#'>Create an account</a>")
+        create_account_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        create_account_label.setStyleSheet("color: #0078D7; font-size: 14px;")
+        create_account_label.setOpenExternalLinks(True)
+        layout.addWidget(create_account_label)
+
     @staticmethod
     def _add_spacer(layout: QVBoxLayout, width: int = 20, height: int = 20):
         """Add a spacer item to the layout."""
@@ -138,13 +193,6 @@ class ModernLogin(QWidget):
     def _get_resource_path(self, resource_name: str) -> str:
         """Get the full path for a resource file."""
         return os.path.join(os.path.dirname(__file__), self.RESOURCES_PATH, resource_name)
-
-    def _create_link_label(self, text: str, margin_left: str = "0px") -> QLabel:
-        """Create a clickable link label."""
-        label = QLabel(f'<a href="#">{text}</a>')
-        label.setOpenExternalLinks(True)
-        label.setStyleSheet(f"color: #0078D7; font-size: 14px; margin-left: {margin_left};")
-        return label
 
     def on_login_clicked(self):
         """Handle login button click event."""
