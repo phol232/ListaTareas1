@@ -62,6 +62,10 @@ class ModernLogin(QWidget):
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(subtitle_label)
 
+
+    def get_icon_path(self, icon_name):
+        return os.path.join(os.path.dirname(__file__), f'../Resources/{icon_name}')
+
     def add_social_buttons(self, layout):
         social_layout = QHBoxLayout()
 
