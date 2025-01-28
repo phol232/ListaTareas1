@@ -9,7 +9,7 @@ from PyQt6.QtGui import QFont, QIcon, QAction
 from PyQt6.QtCore import Qt
 
 from src.Capa_Negocio.negUsuarios import NegUsuarios
-from src.Capa_Presentacion.Menu import Menu
+from src.Capa_Presentacion.Menu import ModernTodoListApp as Menu
 
 class ModernLogin(QWidget):
     """

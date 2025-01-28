@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit,
     QTableWidget, QComboBox, QApplication, QHBoxLayout, QListWidget,
-    QFrame, QTableWidgetItem, QHeaderView, QToolButton, QListWidgetItem
+    QFrame, QHeaderView, QToolButton, QListWidgetItem, QButtonGroup, QMenu
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 import sys
 
 class ModernTodoListApp(QWidget):
@@ -60,7 +61,7 @@ class ModernTodoListApp(QWidget):
         sidebar_frame.setFixedWidth(250)
         sidebar_frame.setStyleSheet("""
             QFrame {
-                background-color: #FFA07A;
+                background-color: #2965f1;
                 border-right: 1px solid #dcdde1;
             }
         """)
@@ -73,7 +74,7 @@ class ModernTodoListApp(QWidget):
         logo_label.setStyleSheet("""
             font-size: 24px;
             font-weight: bold;
-            color: #6c5ce7;
+            color: white;
             margin-bottom: 20px;
         """)
         sidebar_layout.addWidget(logo_label)
@@ -93,8 +94,8 @@ class ModernTodoListApp(QWidget):
         QListWidget {
            border: none;
            font-size: 14px;
-           background-color: #FFA07A;
-           color: black;
+           background-color: #2965f1;
+           color: white;
         }
         QListWidget::item {
            padding: 10px 10px;
@@ -106,14 +107,15 @@ class ModernTodoListApp(QWidget):
            font-weight: bold;
         }
         QListWidget::item:hover {
-           background-color: #f1f2f6;
+           background-color: white;
+           color: black;
         }
         QListWidget:focus {
-           outline: none; /* Elimina el contorno al enfocar */
+           outline: none; 
            border: none;
         }
         QListWidget::item:focus {
-           outline: none; /* Elimina el contorno al seleccionar */
+           outline: none; 
            border: none;
         }
         """)
@@ -131,21 +133,14 @@ class ModernTodoListApp(QWidget):
         content_layout.setContentsMargins(30, 30, 30, 30)
         content_layout.setSpacing(20)
 
-        # Header con welcome y botón de notificaciones
+        # Header
         header_layout = QVBoxLayout()
         top_header = QHBoxLayout()
-
-        # Welcome text
         welcome_label = QLabel("Welcome back Phol, Taquiri")
-        welcome_label.setStyleSheet("""
-            font-size: 14px;
-            color: #666666;
-        """)
+        welcome_label.setStyleSheet("font-size: 14px; color: #666666;")
         top_header.addWidget(welcome_label)
-
         top_header.addStretch()
 
-        # Botón de notificaciones
         notification_button = QToolButton()
         notification_button.setText("🔔")
         notification_button.setStyleSheet("""
@@ -159,12 +154,10 @@ class ModernTodoListApp(QWidget):
             }
         """)
         top_header.addWidget(notification_button)
-
         header_layout.addLayout(top_header)
 
-        # Los dos campos rectangulares
+        # Campos rectangulares
         rectangles_layout = QHBoxLayout()
-
         rect1 = QFrame()
         rect1.setFixedSize(200, 100)
         rect1.setStyleSheet("""
@@ -186,35 +179,98 @@ class ModernTodoListApp(QWidget):
         header_layout.addLayout(rectangles_layout)
         content_layout.addLayout(header_layout)
 
-        # Filtros y búsqueda
+        # 🚀 **Filtros y búsqueda**
         filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(15)
 
-        self.priority_combo = QComboBox()
-        self.priority_combo.addItems(["PRIORIDAD", "Alta", "Media", "Baja"])
-        filter_layout.addWidget(self.priority_combo)
-
-        self.filter_button = QPushButton("🔍 FILTRAR")
-        self.filter_button.setStyleSheet("""
+        # 🔹 **Menú desplegable con botones (en lugar de QComboBox)**
+        self.priority_button = QPushButton("PRIORIDAD")
+        self.priority_button.setStyleSheet("""
             QPushButton {
                 background-color: #ffd32a;
-                border: none;
-                padding: 10px 20px;
                 border-radius: 5px;
-                font-weight: bold;
+                padding: 12px 20px;
                 font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #ffc61a;
+                background-color: #d0d0d0;
             }
         """)
-        filter_layout.addWidget(self.filter_button)
 
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 SEARCH.....")
-        self.search_input.setMinimumWidth(300)
-        filter_layout.addWidget(self.search_input)
+        # Crear menú desplegable
+        self.priority_menu = QMenu()
 
+        # Opciones dentro del menú
+        high_priority = self.priority_menu.addAction("Alta")
+        medium_priority = self.priority_menu.addAction("Media")
+        low_priority = self.priority_menu.addAction("Baja")
+
+        # Conectar eventos para cambiar el texto del botón al seleccionar una opción
+        high_priority.triggered.connect(lambda: self.priority_button.setText("Alta 🔴"))
+        medium_priority.triggered.connect(lambda: self.priority_button.setText("Media 🟡"))
+        low_priority.triggered.connect(lambda: self.priority_button.setText("Baja 🟢"))
+
+        # Hacer que el botón abra el menú desplegable
+        self.priority_button.setMenu(self.priority_menu)
+
+        filter_layout.addWidget(self.priority_button)
+
+        # Nuevo input y botón de búsqueda con altura ajustada
+        input_wrapper = QFrame()
+        input_wrapper.setStyleSheet("""
+        QFrame {
+            background-color: white;
+            border-radius: 5px;
+            padding: 0px;
+            height: 20px;
+            border: 1px solid #dcdde1;
+        }
+        """)
+        input_layout = QHBoxLayout(input_wrapper)
+        input_layout.setContentsMargins(2, 0, 2, 0)
+        input_layout.setSpacing(2)
+
+        # Icono de lupa
+        icon_label = QLabel("🔍")
+        icon_label.setStyleSheet("color: black; margin: 0px; font-size: 14px; border: none;")
+        input_layout.addWidget(icon_label)
+
+        # Input de búsqueda
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("Categorias o estado")
+        self.email_input.setMinimumSize(140, 30)
+        self.email_input.setFixedHeight(25)
+        self.email_input.setStyleSheet("""
+        QLineEdit {
+            border: none;
+            background-color: white;
+            color: black;
+            padding: 0 8px;
+            font-size: 14px;
+            height: 25px;
+        }
+        """)
+        input_layout.addWidget(self.email_input)
+
+        # Botón de búsqueda
+        subscribe_button = QPushButton("Buscar")
+        subscribe_button.setFixedHeight(30)
+        subscribe_button.setStyleSheet("""
+        QPushButton {
+            background-color: #ffc61a;
+            border-radius: 5px;
+            padding: 0 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: black;
+            height: 30px;
+        }
+        QPushButton:hover {
+            background-color: #e1a500;
+            color: white;
+        }
+        """)
+        input_layout.addWidget(subscribe_button)
+        filter_layout.addWidget(input_wrapper)
         filter_layout.addStretch()
 
         self.create_button = QPushButton("➕ CREAR TAREA")
@@ -241,7 +297,6 @@ class ModernTodoListApp(QWidget):
         self.task_table.setHorizontalHeaderLabels([
             "NOMBRE", "DESCRIPCION", "CATEGORIA", "PRIORIDAD", "STATUS", "FECHA", "ACCIONES"
         ])
-
         self.task_table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
@@ -262,14 +317,9 @@ class ModernTodoListApp(QWidget):
                 border-bottom: 1px solid #f5f6fa;
             }
         """)
-
-        header = self.task_table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
         content_layout.addWidget(self.task_table)
         content_frame.setLayout(content_layout)
         main_layout.addWidget(content_frame)
-
         self.setLayout(main_layout)
 
 if __name__ == "__main__":
