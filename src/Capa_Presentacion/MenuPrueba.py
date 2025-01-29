@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 import sys
-
+from CrearTarea import CategoryForm
 class ModernTodoListApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -321,6 +321,32 @@ class ModernTodoListApp(QWidget):
         content_frame.setLayout(content_layout)
         main_layout.addWidget(content_frame)
         self.setLayout(main_layout)
+        self.create_button.clicked.connect(self.open_new_task_form)
+
+    def open_new_task_form(self):
+        """Función para abrir el formulario de nueva tarea en la esquina derecha de la ventana principal."""
+        self.new_task_window = CategoryForm()
+
+        # Obtener la geometría de la ventana principal
+        main_window_geometry = self.geometry()
+        main_x = main_window_geometry.x()
+        main_y = main_window_geometry.y()
+        main_width = main_window_geometry.width()
+
+        # Tamaño de la ventana de nueva tarea
+        window_width = 350  # Ajusta según el tamaño de tu ventana
+        window_height = 500  # Ajusta según el tamaño de tu ventana
+
+        # Calcular la posición en la esquina derecha de la ventana principal
+        x_position = main_x + main_width - window_width
+        y_position = main_y  # Mantener en la parte superior
+
+        # Mover la ventana emergente a la posición calculada
+        self.new_task_window.resize(window_width, window_height)
+        self.new_task_window.move(x_position, y_position)
+
+        # Mostrar la ventana
+        self.new_task_window.show()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
