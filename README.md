@@ -15,7 +15,7 @@ A continuación se presenta la estructura del equipo:
 
 | Nombre       | Rol           |
 |-------------|--------------|
-| TAQUIRI ROJAS PHOL EDWIN | Scrum Maste |
+| TAQUIRI ROJAS PHOL EDWIN | Scrum Master |
 | QUISPE CAMPOS LUIS | Desarrollador |
 | MENDEZ ROCA KEVIN | Desarrollador |
 
