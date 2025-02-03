@@ -1,4 +1,4 @@
-# ToDo-LIST
+# ToDo-LISTA
 
 Este proyecto es una aplicación diseñada para la gestión eficiente de tareas, permitiendo a los usuarios organizar su trabajo de manera estructurada y colaborativa. La aplicación permite crear, asignar, actualizar y completar tareas con facilidad.
 
