@@ -306,7 +306,7 @@ class ModernTodoListApp(QWidget):
             }
             QHeaderView::section {
                 background-color: white;
-                padding: 15px;
+                padding: 10px;
                 border: none;
                 border-bottom: 2px solid #dcdde1;
                 font-weight: bold;
@@ -314,6 +314,7 @@ class ModernTodoListApp(QWidget):
             }
             QTableWidget::item {
                 padding: 10px;
+                margin: 5px;
                 border-bottom: 1px solid #f5f6fa;
             }
         """)
@@ -321,10 +322,12 @@ class ModernTodoListApp(QWidget):
         content_frame.setLayout(content_layout)
         main_layout.addWidget(content_frame)
         self.setLayout(main_layout)
+
+        # Conectar el botón de "CREAR TAREA"
         self.create_button.clicked.connect(self.open_new_task_form)
 
     def open_new_task_form(self):
-        """Función para abrir el formulario de nueva tarea en la esquina derecha de la ventana principal."""
+
         self.new_task_window = CategoryForm()
 
         # Obtener la geometría de la ventana principal
