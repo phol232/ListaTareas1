@@ -194,43 +194,59 @@ class ModernLogin(QWidget):
         """Get the full path for a resource file."""
         return os.path.join(os.path.dirname(__file__), self.RESOURCES_PATH, resource_name)
 
+    def _validate_login_input(self, email: str, password: str) -> bool:
+
+        if not email:
+           QMessageBox.warning(self, "Error", "⚠️ Por favor, ingresa tu correo electrónico.")
+           return False
+
+        if "@" not in email or "." not in email:
+           QMessageBox.warning(self, "Error", "⚠️ Ingresa un correo electrónico válido.")
+           return False
+
+        if not password:
+           QMessageBox.warning(self, "Error", "⚠️ Por favor, ingresa tu contraseña.")
+           return False
+
+        if len(password) < 6:
+           QMessageBox.warning(self, "Error", "⚠️ La contraseña debe tener al menos 6 caracteres.")
+           return False
+
+        return True
+
+
     def on_login_clicked(self):
         """Handle login button click event."""
         email = self.email_input.text().strip()
         password = self.password_input.text().strip()
 
-        if not self._validate_login_input(email, password):
-            return
+        if self._validate_login_input(email, password):
+           # ✅ Solo una llamada a _process_login
+           self._process_login(email, password)
 
-        self._process_login(email, password)
-
-    def _validate_login_input(self, email: str, password: str) -> bool:
-        """Validate login input fields."""
-        if not email or not password:
-            QMessageBox.warning(self, "Error", "Please enter email and password.")
-            return False
-        return True
 
     def _process_login(self, email: str, password: str):
         """Process the login attempt."""
         result = NegUsuarios.autenticar_usuario(email, password)
+        print(f"📢 Resultado del login: {result}")
+
         if result.get('message') == "Login successful":
-             QMessageBox.information(self, "Success", "Welcome")
-             self._open_menu(result.get('user'))  # Pasa el usuario autenticado
+           QMessageBox.information(self, "Success", "Welcome")
+           self._open_menu(result)  # ✅ Solo abrir el menú si el login fue exitoso
         else:
             QMessageBox.critical(self, "Error", result.get('message', "Invalid credentials."))
 
 
     def _open_menu(self, usuario):
+        """Open the main menu after successful login."""
         try:
-            print("🔑 Abriendo el menú principal...")
-            self.menu_window = ModernTodoListApp(usuario=usuario)  # Forma explícita
+            print(f"🔑 Abriendo el menú principal para: {usuario}")
+            self.menu_window = ModernTodoListApp(usuario=usuario)
             self.menu_window.show()
             self.hide()
         except Exception as e:
             print(f"❌ Error al abrir el menú principal: {e}")
             QMessageBox.critical(self, "Error", f"No se pudo abrir el menú: {e}")
-
 
 
 if __name__ == "__main__":

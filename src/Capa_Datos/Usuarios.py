@@ -1,9 +1,9 @@
 class Usuario:
-    def __init__(self, id: str, name: str, email: str, password_hash: str):
+    def __init__(self, id: str, name: str, email: str, password_hash: str = None):
         self._id = id
         self._name = name
         self._email = email
-        self._password_hash = password_hash
+        self._password_hash = password_hash  # Será None si no se proporciona
 
     # Getters
     def get_id(self):
@@ -33,7 +33,7 @@ class Usuario:
 
     # Método para imprimir los datos del usuario
     def __str__(self):
-        return f"Usuario(id='{self._id}', name='{self._name}', email='{self._email}', password_hash='{self._password_hash}')"
+        return f"Usuario(id='{self._id}', name='{self._name}', email='{self._email}')"
 
     # ✅ Método para convertir el objeto en un diccionario
     def to_dict(self):
@@ -41,5 +41,4 @@ class Usuario:
             "id": self._id,
             "name": self._name,
             "email": self._email,
-            "password_hash": self._password_hash
         }

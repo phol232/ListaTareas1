@@ -6,9 +6,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from datetime import datetime
 
 
 from CrearTarea import CategoryForm
+from src.Capa_Conexion.ConexionMySql import ConexionMySql
 from src.Capa_Negocio.negTareas import NegTareas
 from src.Capa_Negocio.negUsuarios import NegUsuarios
 
@@ -304,10 +306,12 @@ class ModernTodoListApp(QWidget):
         header = self.task_table.horizontalHeader()
         for i in range(6):
             header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         self.task_table.setColumnWidth(6, 310)
         self.task_table.setColumnWidth(4, 130)
+        self.task_table.setColumnWidth(4, 100)
 
         content_layout.addWidget(self.task_table)
         content_frame.setLayout(content_layout)
@@ -360,44 +364,74 @@ class ModernTodoListApp(QWidget):
 
 
     def open_new_task_form(self):
-        self.new_task_window = CategoryForm()
-        self.new_task_window.tarea_guardada.connect(self.agregar_tarea_desde_formulario)
+        try:
+            # ✅ Verificar si hay un usuario logueado
+            if not NegUsuarios.usuario_actual:
+                QMessageBox.warning(self, "Advertencia", "❌ No hay un usuario logueado.")
+                return
 
-        main_window_geometry = self.geometry()
-        main_x = main_window_geometry.x()
-        main_y = main_window_geometry.y()
-        main_width = main_window_geometry.width()
-        window_width = 350
-        window_height = 500
-        x_position = main_x + main_width - window_width
-        y_position = main_y
-        self.new_task_window.resize(window_width, window_height)
-        self.new_task_window.move(x_position, y_position)
-        self.new_task_window.show()
+            # ✅ Verificar si la conexión a la base de datos está activa
+            if not NegUsuarios.conexion_sesion or not NegUsuarios.conexion_sesion.is_connected():
+                print("🔄 Reconectando a la base de datos...")
+                NegUsuarios.conexion_sesion = ConexionMySql.get_conexion_sesion()
+
+                # Verificar si la reconexión fue exitosa
+                if not NegUsuarios.conexion_sesion or not NegUsuarios.conexion_sesion.is_connected():
+                    QMessageBox.critical(self, "Error de Conexión", "❌ No hay una conexión activa con la base de datos.")
+                    return
+
+            # ✅ Abrir el formulario para crear una nueva tarea si la conexión es exitosa
+            self.new_task_window = CategoryForm()
+            self.new_task_window.tarea_guardada.connect(self.agregar_tarea_desde_formulario)
+
+            # 📍 Posicionar la ventana de crear tarea
+            main_window_geometry = self.geometry()
+            main_x = main_window_geometry.x()
+            main_y = main_window_geometry.y()
+            main_width = main_window_geometry.width()
+            window_width = 350
+            window_height = 500
+            x_position = main_x + main_width - window_width
+            y_position = main_y
+
+            self.new_task_window.resize(window_width, window_height)
+            self.new_task_window.move(x_position, y_position)
+            self.new_task_window.show()
+
+        except Exception as e:
+            print(f"❌ Error inesperado: {e}")
+            QMessageBox.critical(self, "Error", f"❌ Error inesperado: {str(e)}")
+
 
 
     def agregar_tarea_desde_formulario(self, tarea):
         try:
-           print("✅ Agregando tarea desde el formulario:", tarea)
+            print("✅ Agregando tarea desde el formulario:", tarea)
 
-           self.agregar_tarea(
-             tarea.get("titulo", ""),
-             tarea.get("descripcion", ""),
-             tarea.get("categoria", ""),
-             tarea.get("prioridad", ""),
-             tarea.get("estado", ""),
-             tarea.get("fecha", "")
-           )
+            self.agregar_tarea(
+                tarea.get("titulo", ""),
+                tarea.get("descripcion", ""),
+                tarea.get("categoria", ""),
+                tarea.get("prioridad", ""),
+                tarea.get("estado", ""),
+                tarea.get("fecha", "")
+            )
 
         except Exception as e:
-           print(f"❌ Error al agregar la tarea desde el formulario: {e}")
-           QMessageBox.critical(self, "Error", f"Error al agregar la tarea: {e}")
+            print(f"❌ Error al agregar la tarea desde el formulario: {e}")
+            QMessageBox.critical(self, "Error", f"Error al agregar la tarea: {e}")
+
+
 
 
 
     def agregar_tarea(self, nombre, descripcion, categoria, prioridad, estado, fecha):
         row = self.task_table.rowCount()  # Obtiene el número de filas actuales
-        self.task_table.insertRow(row)    # Inserta una nueva fila al final de la tabla
+        self.task_table.insertRow(row)
+
+        # ✅ Convertir la fecha a cadena si es un objeto datetime
+        if isinstance(fecha, datetime):
+           fecha = fecha.strftime('%Y-%m-%d')  # Formato legible: Año-Mes-Día
 
         # Agrega los datos de la tarea a cada celda de la nueva fila
         self.task_table.setItem(row, 0, QTableWidgetItem(nombre))
@@ -405,7 +439,7 @@ class ModernTodoListApp(QWidget):
         self.task_table.setItem(row, 2, QTableWidgetItem(categoria))
         self.task_table.setItem(row, 3, QTableWidgetItem(prioridad))
         self.task_table.setItem(row, 4, QTableWidgetItem(estado))
-        self.task_table.setItem(row, 5, QTableWidgetItem(fecha))
+        self.task_table.setItem(row, 5, QTableWidgetItem(str(fecha)))  # Asegura que siempre sea string
 
         # Botones de acción (Editar, Completar, Eliminar)
         action_widget = QWidget()
@@ -417,16 +451,16 @@ class ModernTodoListApp(QWidget):
         btn_edit = QPushButton("Editar")
         btn_edit.setStyleSheet("""
         QPushButton {
-            background-color: white;
-            color: black;
-            border: 1px solid #6c5ce7;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
+        background-color: white;
+        color: black;
+        border: 1px solid #6c5ce7;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-weight: bold;
         }
         QPushButton:hover {
-            background-color: #6c5ce7;
-            color: white;
+        background-color: #6c5ce7;
+        color: white;
         }
         """)
         btn_edit.clicked.connect(lambda: self.editar_tarea(row))
@@ -435,16 +469,16 @@ class ModernTodoListApp(QWidget):
         btn_complete = QPushButton("Completar")
         btn_complete.setStyleSheet("""
         QPushButton {
-            background-color: white;
-            color: green;
-            border: 1px solid green;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
+        background-color: white;
+        color: green;
+        border: 1px solid green;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-weight: bold;
         }
         QPushButton:hover {
-            background-color: green;
-            color: white;
+          background-color: green;
+          color: white;
         }
         """)
         btn_complete.clicked.connect(lambda: self.completar_tarea(row))
@@ -453,16 +487,16 @@ class ModernTodoListApp(QWidget):
         btn_delete = QPushButton("Eliminar")
         btn_delete.setStyleSheet("""
         QPushButton {
-            background-color: white;
-            color: red;
-            border: 1px solid red;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
+        background-color: white;
+        color: red;
+        border: 1px solid red;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-weight: bold;
         }
         QPushButton:hover {
-            background-color: red;
-            color: white;
+        background-color: red;
+        color: white;
         }
         """)
         btn_delete.clicked.connect(lambda: self.eliminar_tarea(row))
@@ -471,7 +505,6 @@ class ModernTodoListApp(QWidget):
         action_layout.addWidget(btn_edit)
         action_layout.addWidget(btn_complete)
         action_layout.addWidget(btn_delete)
-
 
         action_widget.setMinimumWidth(300)
         self.task_table.setCellWidget(row, 6, action_widget)
@@ -491,22 +524,22 @@ class ModernTodoListApp(QWidget):
 
     def eliminar_tarea(self, row):
 
-       confirm_dialog = QMessageBox()
-       confirm_dialog.setIcon(QMessageBox.Icon.Warning)
-       confirm_dialog.setWindowTitle("Confirmar Eliminación")
-       confirm_dialog.setText("¿Estás seguro de que deseas eliminar esta tarea?")
-       confirm_dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-       confirm_dialog.setDefaultButton(QMessageBox.StandardButton.No)
+        confirm_dialog = QMessageBox()
+        confirm_dialog.setIcon(QMessageBox.Icon.Warning)
+        confirm_dialog.setWindowTitle("Confirmar Eliminación")
+        confirm_dialog.setText("¿Estás seguro de que deseas eliminar esta tarea?")
+        confirm_dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm_dialog.setDefaultButton(QMessageBox.StandardButton.No)
 
 
-       respuesta = confirm_dialog.exec()
+        respuesta = confirm_dialog.exec()
 
 
-       if respuesta == QMessageBox.StandardButton.Yes:
-          self.task_table.removeRow(row)
-          print(f"Tarea eliminada en la fila {row}")
-       else:
-         print("Eliminación cancelada.")
+        if respuesta == QMessageBox.StandardButton.Yes:
+            self.task_table.removeRow(row)
+            print(f"Tarea eliminada en la fila {row}")
+        else:
+            print("Eliminación cancelada.")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
