@@ -9,7 +9,7 @@ from PyQt6.QtGui import QFont, QIcon, QAction
 from PyQt6.QtCore import Qt
 
 from src.Capa_Negocio.negUsuarios import NegUsuarios
-from src.Capa_Presentacion.MenuVersion1 import ModernTodoListApp as Menu
+from src.Capa_Presentacion.MenuVersion1 import ModernTodoListApp
 
 class ModernLogin(QWidget):
     """
@@ -215,16 +215,22 @@ class ModernLogin(QWidget):
         """Process the login attempt."""
         result = NegUsuarios.autenticar_usuario(email, password)
         if result.get('message') == "Login successful":
-            QMessageBox.information(self, "Success", "Welcome")
-            self._open_menu()
+             QMessageBox.information(self, "Success", "Welcome")
+             self._open_menu(result.get('user'))  # Pasa el usuario autenticado
         else:
             QMessageBox.critical(self, "Error", result.get('message', "Invalid credentials."))
 
-    def _open_menu(self):
-        """Open the menu window and close the login window."""
-        self.menu_window = Menu()
-        self.menu_window.show()
-        self.close()
+
+    def _open_menu(self, usuario):
+        try:
+            print("🔑 Abriendo el menú principal...")
+            self.menu_window = ModernTodoListApp(usuario=usuario)  # Forma explícita
+            self.menu_window.show()
+            self.hide()
+        except Exception as e:
+            print(f"❌ Error al abrir el menú principal: {e}")
+            QMessageBox.critical(self, "Error", f"No se pudo abrir el menú: {e}")
+
 
 
 if __name__ == "__main__":

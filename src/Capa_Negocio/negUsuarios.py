@@ -1,45 +1,50 @@
-from src.Capa_Datos.UsuariosDAO import Usuarios
+from src.Capa_Conexion.ConexionMySql import ConexionMySql
+from src.Capa_Datos.UsuariosDAO import UsuariosDAO  # Asegúrate de importar UsuariosDAO
 
 class NegUsuarios:
+    conexion_sesion = None  # Guardará la conexión de sesión
+    usuario_actual = None   # Guardará la información del usuario logueado
+
     @staticmethod
     def autenticar_usuario(email, password):
-        """Maneja la lógica de autenticación del usuario."""
-
-        # Validar si los campos están vacíos
-        if not email or not password:
-            return {"message": "Debe ingresar email y contraseña"}
-
+        conexion = ConexionMySql.get_conexion_sesion()
         try:
-            # Llamar a la capa de datos para validar el usuario
-            resultado = Usuarios.validate_user_login(email, password)
+            cursor = conexion.cursor(dictionary=True)
+            cursor.execute("CALL validate_user_login(%s, %s)", (email, password))
+            resultado = cursor.fetchone()
 
-            # Verificar si el resultado contiene los datos correctos
-            if isinstance(resultado, dict) and resultado.get('message') == "Login successful":
-                return {
-                    "message": "Login successful",
-                    "id": resultado.get("id"),
-                    "name": resultado.get("name"),
-                    "email": resultado.get("email")
-                }
-            elif isinstance(resultado, dict) and resultado.get('message'):
-                return {"message": resultado.get('message')}
+            print(f"📢 Resultado del login: {resultado}")
+
+            if resultado and resultado.get('message') == "Login successful":
+               NegUsuarios.usuario_actual = {
+                  "user_id": resultado.get('id'),  # Asegúrate de que exista 'id'
+                  "name": resultado.get('name'),
+                  "email": resultado.get('email')  # ✅ Añade 'email' si falta
+               }
+               return {"message": "Login successful", "user": NegUsuarios.usuario_actual}
             else:
                 return {"message": "Invalid email or password"}
-
-        except ConnectionError:
-            return {"message": "Error de conexión con la base de datos"}
         except Exception as e:
-            print("Error en la autenticación:", str(e))
-            return {"message": "Error en la autenticación"}
+            print(f"❌ Error al autenticar usuario: {e}")
+            return {"message": f"Error: {str(e)}"}
+        finally:
+            cursor.close()
 
-# Código de prueba
-if __name__ == "__main__":
-    email = "alice.johnson@example.com"
-    password = "123456"
 
-    resultado = NegUsuarios.autenticar_usuario(email, password)
-
-    if resultado.get("message") == "Login successful":
-        print(f"Bienvenido {resultado['name']} (ID: {resultado['id']})")
-    else:
-        print(resultado["message"])
+    @staticmethod
+    def cerrar_sesion():
+        """
+        Cierra la sesión del usuario actual y limpia la variable de sesión en la base de datos.
+        """
+        if NegUsuarios.conexion_sesion and NegUsuarios.usuario_actual:
+            try:
+                cursor = NegUsuarios.conexion_sesion.cursor()
+                cursor.execute("SET @current_user_id = NULL")  # Limpiar la variable de sesión en la BD
+                NegUsuarios.usuario_actual = None  # Limpiar la información del usuario en memoria
+                print("🚪 Sesión cerrada correctamente.")
+            except Exception as e:
+                print(f"❌ Error al cerrar sesión: {e}")
+            finally:
+                cursor.close()  # Cerrar el cursor
+        else:
+            print("ℹ️ No hay una sesión activa para cerrar.")

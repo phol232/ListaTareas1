@@ -1,6 +1,5 @@
 class Usuario:
     def __init__(self, id: str, name: str, email: str, password_hash: str):
-
         self._id = id
         self._name = name
         self._email = email
@@ -36,12 +35,11 @@ class Usuario:
     def __str__(self):
         return f"Usuario(id='{self._id}', name='{self._name}', email='{self._email}', password_hash='{self._password_hash}')"
 
-
-# Ejemplo de uso
-if __name__ == "__main__":
-    usuario = Usuario("123456", "Alice Johnson", "alice.johnson@example.com", "hashed_password_123")
-    print(usuario)
-
-    # Actualizando algunos atributos
-    usuario.set_email("new.email@example.com")
-    print(f"Email actualizado: {usuario.get_email()}")
+    # ✅ Método para convertir el objeto en un diccionario
+    def to_dict(self):
+        return {
+            "id": self._id,
+            "name": self._name,
+            "email": self._email,
+            "password_hash": self._password_hash
+        }

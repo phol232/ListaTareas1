@@ -9,15 +9,31 @@ from PyQt6.QtGui import QFont
 
 
 from CrearTarea import CategoryForm
+from src.Capa_Negocio.negTareas import NegTareas
+from src.Capa_Negocio.negUsuarios import NegUsuarios
+
 
 class ModernTodoListApp(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, usuario=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.usuario = usuario
+        self.neg_tareas = NegTareas()
+
         self.setWindowTitle("TODO - LIST")
         self.setGeometry(100, 100, 1250, 700)
+
         self.initUI()
+        self.cargar_tareas()
 
     def initUI(self):
+        # ✅ Mostrar el nombre del usuario logueado si existe
+        if self.usuario:
+            welcome_label = QLabel(f"👋 Bienvenido de nuevo, {self.usuario}")
+        else:
+            welcome_label = QLabel("Bienvenido al TODO-LIST")
+
+        welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         main_layout = QHBoxLayout()
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -249,7 +265,7 @@ class ModernTodoListApp(QWidget):
         self.task_table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
-                border: 3px solid #dcdde1;
+                border: 2px solid #9c9c9c;
                 border-radius: 10px;
                 gridline-color: #f5f6fa;
                 outline: none;  /* Elimina el contorno al hacer clic */
@@ -288,8 +304,10 @@ class ModernTodoListApp(QWidget):
         header = self.task_table.horizontalHeader()
         for i in range(6):
             header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         self.task_table.setColumnWidth(6, 310)
+        self.task_table.setColumnWidth(4, 130)
 
         content_layout.addWidget(self.task_table)
         content_frame.setLayout(content_layout)
@@ -302,15 +320,49 @@ class ModernTodoListApp(QWidget):
         # 📏 Aumentar la altura de todas las filas
         self.task_table.verticalHeader().setDefaultSectionSize(50)
 
-        # Agregar tareas de ejemplo
-        self.agregar_tarea("Tarea 1", "Descripción 1", "Personal", "Alta 🔴", "Pendiente", "2025-02-10")
-        self.agregar_tarea("Tarea 2", "Descripción 2", "Trabajo", "Media 🟡", "En progreso", "2025-02-11")
-
     def get_current_user(self):
         return "phol232"
 
+    def cargar_tareas(self):
+        try:
+            print("🔄 Cargando tareas...")
+            if not NegUsuarios.usuario_actual:
+                QMessageBox.warning(self, "Advertencia", "❌ No hay un usuario logueado.")
+                return
+
+            response = self.neg_tareas.listar_tareas()
+
+            self.task_table.setRowCount(0)
+
+            if response.get('error'):
+                print(f"❌ {response['error']}")
+                QMessageBox.critical(self, "Error", response['error'])
+            elif response.get('success') and response.get('tareas'):
+                tareas = response['tareas']
+                print(f"📋 {len(tareas)} tareas encontradas.")
+                for tarea in tareas:
+                    self.agregar_tarea(
+                        tarea.get('titulo', ''),
+                        tarea.get('descripcion', ''),
+                        tarea.get('categoria', ''),
+                        tarea.get('prioridad', ''),
+                        tarea.get('estado', ''),
+                        tarea.get('fecha', ''),
+                    )
+            else:
+                print("ℹ️ No hay tareas registradas.")
+                QMessageBox.information(self, "Información", "No hay tareas registradas.")
+
+        except Exception as e:
+            print(f"❌ Error al cargar tareas: {e}")
+            QMessageBox.critical(self, "Error", f"Error al cargar tareas: {e}")
+
+
+
     def open_new_task_form(self):
         self.new_task_window = CategoryForm()
+        self.new_task_window.tarea_guardada.connect(self.agregar_tarea_desde_formulario)
+
         main_window_geometry = self.geometry()
         main_x = main_window_geometry.x()
         main_y = main_window_geometry.y()
@@ -323,86 +375,108 @@ class ModernTodoListApp(QWidget):
         self.new_task_window.move(x_position, y_position)
         self.new_task_window.show()
 
-    def agregar_tarea(self, nombre, descripcion, categoria, prioridad, status, fecha):
-        row = self.task_table.rowCount()
-        self.task_table.insertRow(row)
+
+    def agregar_tarea_desde_formulario(self, tarea):
+        try:
+           print("✅ Agregando tarea desde el formulario:", tarea)
+
+           self.agregar_tarea(
+             tarea.get("titulo", ""),
+             tarea.get("descripcion", ""),
+             tarea.get("categoria", ""),
+             tarea.get("prioridad", ""),
+             tarea.get("estado", ""),
+             tarea.get("fecha", "")
+           )
+
+        except Exception as e:
+           print(f"❌ Error al agregar la tarea desde el formulario: {e}")
+           QMessageBox.critical(self, "Error", f"Error al agregar la tarea: {e}")
 
 
+
+    def agregar_tarea(self, nombre, descripcion, categoria, prioridad, estado, fecha):
+        row = self.task_table.rowCount()  # Obtiene el número de filas actuales
+        self.task_table.insertRow(row)    # Inserta una nueva fila al final de la tabla
+
+        # Agrega los datos de la tarea a cada celda de la nueva fila
         self.task_table.setItem(row, 0, QTableWidgetItem(nombre))
         self.task_table.setItem(row, 1, QTableWidgetItem(descripcion))
         self.task_table.setItem(row, 2, QTableWidgetItem(categoria))
         self.task_table.setItem(row, 3, QTableWidgetItem(prioridad))
-        self.task_table.setItem(row, 4, QTableWidgetItem(status))
+        self.task_table.setItem(row, 4, QTableWidgetItem(estado))
         self.task_table.setItem(row, 5, QTableWidgetItem(fecha))
 
-        # 🔘 Botones de acciones
+        # Botones de acción (Editar, Completar, Eliminar)
         action_widget = QWidget()
         action_layout = QHBoxLayout(action_widget)
         action_layout.setContentsMargins(5, 2, 5, 2)
         action_layout.setSpacing(5)
 
+        # Botón Editar
         btn_edit = QPushButton("Editar")
-        btn_complete = QPushButton("Completar")
-        btn_delete = QPushButton("Eliminar")
-
-        # 🎨 Estilos para los botones
         btn_edit.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                color: black;
-                border: 1px solid #6c5ce7;
-                padding: 5px 10px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #6c5ce7;
-                color: white;
-            }
+        QPushButton {
+            background-color: white;
+            color: black;
+            border: 1px solid #6c5ce7;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: #6c5ce7;
+            color: white;
+        }
         """)
-
-        btn_complete.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                color: green;
-                border: 1px solid green;
-                padding: 5px 10px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: green;
-                color: white;
-            }
-        """)
-
-        btn_delete.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                color: red;
-                border: 1px solid red;
-                padding: 5px 10px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: red;
-                color: white;
-            }
-        """)
-
-        # 🔗 Conexión de los botones a sus funciones
         btn_edit.clicked.connect(lambda: self.editar_tarea(row))
+
+        # Botón Completar
+        btn_complete = QPushButton("Completar")
+        btn_complete.setStyleSheet("""
+        QPushButton {
+            background-color: white;
+            color: green;
+            border: 1px solid green;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: green;
+            color: white;
+        }
+        """)
         btn_complete.clicked.connect(lambda: self.completar_tarea(row))
+
+        # Botón Eliminar
+        btn_delete = QPushButton("Eliminar")
+        btn_delete.setStyleSheet("""
+        QPushButton {
+            background-color: white;
+            color: red;
+            border: 1px solid red;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: red;
+            color: white;
+        }
+        """)
         btn_delete.clicked.connect(lambda: self.eliminar_tarea(row))
 
+        # Añade los botones al layout
         action_layout.addWidget(btn_edit)
         action_layout.addWidget(btn_complete)
         action_layout.addWidget(btn_delete)
 
-        # 🖼️ Asegurar que los botones sean visibles
+
         action_widget.setMinimumWidth(300)
         self.task_table.setCellWidget(row, 6, action_widget)
+
+
 
     def editar_tarea(self, row):
         print(f"Editar tarea en la fila {row}")
