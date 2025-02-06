@@ -218,7 +218,7 @@ class ModernTodoListApp(QWidget):
         """)
         input_layout.addWidget(self.search_input)
 
-        search_button = QPushButton("Buscar")
+        search_button = QPushButton("BUSCAR")
         search_button.setFixedHeight(30)
         search_button.setStyleSheet("""
             QPushButton {
@@ -310,8 +310,8 @@ class ModernTodoListApp(QWidget):
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         self.task_table.setColumnWidth(6, 310)
-        self.task_table.setColumnWidth(4, 130)
-        self.task_table.setColumnWidth(4, 100)
+        self.task_table.setColumnWidth(4, 110)
+        self.task_table.setColumnWidth(2, 100)
 
         content_layout.addWidget(self.task_table)
         content_frame.setLayout(content_layout)

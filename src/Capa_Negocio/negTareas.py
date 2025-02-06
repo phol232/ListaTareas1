@@ -8,7 +8,6 @@ class NegTareas:
         self._inicializar_conexion()
 
     def _inicializar_conexion(self):
-        """Inicializa o restablece la conexión activa."""
         self.conexion = NegUsuarios.obtener_conexion_activa()
         if not self.conexion or not self.conexion.is_connected():
             raise Exception("❌ No hay una sesión de usuario activa o la conexión está cerrada.")
