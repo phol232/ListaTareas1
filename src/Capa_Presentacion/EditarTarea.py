@@ -19,27 +19,29 @@ class EditarTarea(QMainWindow):
         super().__init__()
 
         try:
-            self.neg_tareas = NegTareas()
-            print("✅ Lógica de negocio inicializada correctamente.")
+           self.neg_tareas = NegTareas()
+           print("✅ Lógica de negocio inicializada correctamente.")
         except Exception as e:
-            QMessageBox.critical(self, "Error de Conexión", f"❌ Error al conectar con la base de datos: {e}")
-            sys.exit(1)
+           QMessageBox.critical(self, "Error de Conexión", f"❌ Error al conectar con la base de datos: {e}")
+           sys.exit(1)
 
-        # Se fija el ancho de la ventana
+        # Configuración de la ventana
+        self.setWindowTitle("Editar Tarea" if tarea else "Nueva Tarea")
         self.setFixedWidth(330)
+        self.setFixedHeight(500)
         self.tarea = tarea or {}
 
         print("✅ Inicializando la UI de edición...")
         self.init_ui()
-        self.llenar_datos()
+
+        if self.tarea:
+           print("📝 Cargando datos de la tarea existente...")
+           self.llenar_datos()
+
         print("✅ UI cargada correctamente.")
 
-        # Se asegura que la ventana se muestre siempre encima de otras
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-
-        print("✅ Mostrando la ventana de edición...")
-        self.show()
-        print("✅ La ventana de edición debería estar visible.")
+        # Asegurarse que la ventana se muestre siempre encima
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
     def init_ui(self):
         main_widget = QWidget()
@@ -119,49 +121,58 @@ class EditarTarea(QMainWindow):
             print(f"❌ Error al cargar los datos en EditarTarea: {e}")
 
     def guardar_tarea(self):
-        """Recoge los datos ingresados, los valida y los guarda utilizando la lógica de negocio."""
+        """Recoge los datos ingresados, los valida y actualiza la tarea existente."""
         try:
-            print("💾 Iniciando el proceso para guardar la tarea...")
+           print("💾 Iniciando el proceso para actualizar la tarea...")
 
-            if not NegUsuarios.usuario_actual:
-                raise Exception("❌ No hay un usuario logueado para asignar la tarea.")
+           if not NegUsuarios.usuario_actual:
+              raise Exception("❌ No hay un usuario logueado para asignar la tarea.")
 
-            nueva_tarea = {
-                "titulo": self.titulo_input.text().strip(),
-                "descripcion": self.description.toPlainText().strip(),
-                "categoria": self.categoria_combo.currentText(),
-                "prioridad": self.prioridad_combo.currentText(),
-                "estado": self.estado_combo.currentText(),
-                "fecha": self.date_edit.date().toString("yyyy-MM-dd")
-            }
 
-            # Validaciones básicas
-            if not nueva_tarea['titulo']:
-                raise ValueError("❗ El título de la tarea es obligatorio.")
-            if not nueva_tarea['descripcion']:
-                raise ValueError("❗ La descripción de la tarea es obligatoria.")
+           id_tarea = self.tarea.get("idTarea")
+           if not id_tarea:
+              raise ValueError("❗ No se puede actualizar la tarea sin un ID válido.")
 
-            resultado = self.neg_tareas.crear_tarea(
-                titulo=nueva_tarea['titulo'],
-                descripcion=nueva_tarea['descripcion'],
-                cat_id=nueva_tarea['categoria'],
-                prioridad=nueva_tarea['prioridad'],
-                estado=nueva_tarea['estado'],
-                fecha=nueva_tarea['fecha']
-            )
+           tarea_actualizada = {
+              "idTarea": id_tarea,
+              "titulo": self.titulo_input.text().strip(),
+              "descripcion": self.description.toPlainText().strip(),
+              "categoria": self.categoria_combo.currentText(),
+              "prioridad": self.prioridad_combo.currentText(),
+              "estado": self.estado_combo.currentText(),
+              "fecha": self.date_edit.date().toString("yyyy-MM-dd")
+           }
 
-            if 'error' in resultado:
-                QMessageBox.critical(self, "Error", resultado['error'])
-            else:
-                QMessageBox.information(self, "Éxito", resultado.get('message', '✅ Tarea guardada exitosamente.'))
-                # Emitir la señal para notificar que la tarea se guardó
-                self.tarea_guardada.emit(nueva_tarea)
-                self.limpiar_formulario()
+           # Validaciones básicas
+           if not tarea_actualizada['titulo']:
+              raise ValueError("❗ El título de la tarea es obligatorio.")
+           if not tarea_actualizada['descripcion']:
+              raise ValueError("❗ La descripción de la tarea es obligatoria.")
+
+           # 📌 Llamamos a actualizar_tarea en lugar de crear_tarea
+           resultado = self.neg_tareas.actualizar_tarea(
+             id_tarea=tarea_actualizada['idTarea'],
+             titulo=tarea_actualizada['titulo'],
+             descripcion=tarea_actualizada['descripcion'],
+             cat_id=tarea_actualizada['categoria'],
+             prioridad=tarea_actualizada['prioridad'],
+             estado=tarea_actualizada['estado'],
+             fecha=tarea_actualizada['fecha']
+           )
+
+           if 'error' in resultado:
+              QMessageBox.critical(self, "Error", resultado['error'])
+           else:
+              QMessageBox.information(self, "Éxito", resultado.get('message', '✅ Tarea actualizada exitosamente.'))
+              # Emitir la señal para notificar que la tarea se ha actualizado
+              self.tarea_guardada.emit(tarea_actualizada)
+              self.limpiar_formulario()
 
         except ValueError as ve:
-            QMessageBox.warning(self, "Campos Obligatorios", str(ve))
+          QMessageBox.warning(self, "Campos Obligatorios", str(ve))
         except Exception as e:
-            QMessageBox.critical(self, "Error Inesperado", f"❌ Error inesperado: {str(e)}")
+          QMessageBox.critical(self, "Error Inesperado", f"❌ Error inesperado: {str(e)}")
+
 
     def limpiar_formulario(self):
         """Limpia los campos del formulario tras guardar la tarea."""

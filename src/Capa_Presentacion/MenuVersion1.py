@@ -23,14 +23,65 @@ class ModernTodoListApp(QWidget):
         self.usuario = usuario
         self.neg_tareas = NegTareas()
 
-        self.edit_task_window = None  # ✅ Para la edición de tareas
-        self.new_task_window = None  # ✅ Para la creación de tareas
+        self.task_data = {}
 
         self.setWindowTitle("TODO - LIST")
         self.setGeometry(100, 100, 1250, 700)
 
         self.initUI()
         self.cargar_tareas()
+
+    def cargar_tareas(self):
+        try:
+            print("🔄 Cargando tareas...")
+            if not NegUsuarios.usuario_actual:
+                QMessageBox.warning(self, "Advertencia", "❌ No hay un usuario logueado.")
+                return
+
+            response = self.neg_tareas.listar_tareas()
+
+            self.task_table.setRowCount(0)
+            self.task_data.clear()  # 📌 Limpiar datos en memoria antes de cargar
+
+            if response.get('error'):
+                print(f"❌ {response['error']}")
+                QMessageBox.critical(self, "Error", response['error'])
+            elif response.get('success') and response.get('tareas'):
+                tareas = response['tareas']
+                print(f"📋 {len(tareas)} tareas encontradas.")
+
+                for tarea in tareas:
+                    print(f"🔍 Datos de la tarea recibida: {tarea}")  # 📌 Confirmar que `idTarea` esté presente
+
+                    id_tarea = tarea.get('idTarea')  # 📌 Asegurar que usamos la clave correcta
+
+                    if not id_tarea:
+                        print(f"⚠️ Advertencia: Tarea sin ID: {tarea}")
+                        continue  # Omitir tareas sin ID
+
+                    print(f"✅ Guardando en memoria: {id_tarea}")
+                    self.task_data[id_tarea] = tarea  # 📌 Guardar ID correctamente
+
+                    self.agregar_tarea(
+                        id_tarea,
+                        tarea.get("titulo", ""),
+                        tarea.get("descripcion", ""),
+                        tarea.get("categoria", ""),
+                        tarea.get("prioridad", ""),
+                        tarea.get("estado", ""),
+                        tarea.get("fecha", "")
+                    )
+
+            else:
+                print("ℹ️ No hay tareas registradas.")
+                QMessageBox.information(self, "Información", "No hay tareas registradas.")
+
+        except Exception as e:
+            print(f"❌ Error al cargar tareas: {e}")
+            QMessageBox.critical(self, "Error", f"Error al cargar tareas: {e}")
+
+
+
 
     def initUI(self):
         # ✅ Mostrar el nombre del usuario logueado si existe
@@ -264,7 +315,7 @@ class ModernTodoListApp(QWidget):
 
         # Tabla de tareas
         self.task_table = QTableWidget()
-        self.task_table.setColumnCount(7)
+        self.task_table.setColumnCount(8)
         self.task_table.setHorizontalHeaderLabels([
             "NOMBRE", "DESCRIPCION", "CATEGORIA", "PRIORIDAD", "STATUS", "FECHA", "ACCIONES"
         ])
@@ -332,41 +383,6 @@ class ModernTodoListApp(QWidget):
     def get_current_user(self):
         return "phol232"
 
-    def cargar_tareas(self):
-        try:
-            print("🔄 Cargando tareas...")
-            if not NegUsuarios.usuario_actual:
-                QMessageBox.warning(self, "Advertencia", "❌ No hay un usuario logueado.")
-                return
-
-            response = self.neg_tareas.listar_tareas()
-
-            self.task_table.setRowCount(0)
-
-            if response.get('error'):
-                print(f"❌ {response['error']}")
-                QMessageBox.critical(self, "Error", response['error'])
-            elif response.get('success') and response.get('tareas'):
-                tareas = response['tareas']
-                print(f"📋 {len(tareas)} tareas encontradas.")
-                for tarea in tareas:
-                    self.agregar_tarea(
-                        tarea.get('titulo', ''),
-                        tarea.get('descripcion', ''),
-                        tarea.get('categoria', ''),
-                        tarea.get('prioridad', ''),
-                        tarea.get('estado', ''),
-                        tarea.get('fecha', ''),
-                    )
-            else:
-                print("ℹ️ No hay tareas registradas.")
-                QMessageBox.information(self, "Información", "No hay tareas registradas.")
-
-        except Exception as e:
-            print(f"❌ Error al cargar tareas: {e}")
-            QMessageBox.critical(self, "Error", f"Error al cargar tareas: {e}")
-
-
 
     def open_new_task_form(self):
         try:
@@ -409,42 +425,74 @@ class ModernTodoListApp(QWidget):
 
     def editar_tarea(self, row):
         try:
-            print(f"📝 Intentando abrir ventana de edición para la fila {row}")
+            print(f"🔎 Buscando tarea en la fila {row}")
 
-            # Si la ventana de edición ya está abierta, se activa y se retorna
-            if self.edit_task_window is not None and self.edit_task_window.isVisible():
-                print("🔁 La ventana de edición ya estaba abierta.")
-                self.edit_task_window.activateWindow()
+            # ✅ Recupera el ID desde la columna oculta (columna 7)
+            id_item = self.task_table.item(row, 7)
+
+            # 🔴 Verifica si la celda está vacía
+            if id_item is None:
+                print(f"⚠️ Advertencia: No se encontró la celda de ID en la fila {row}.")
+                QMessageBox.warning(self, "Error", "❌ No se encontró el ID de la tarea en la tabla.")
                 return
 
-            print("✅ Creando nueva ventana para editar tarea...")
+            id_tarea = id_item.text().strip()
 
-            # Recopilamos los datos de la tarea a partir de la fila seleccionada
-            tarea = {
-                "titulo": self.task_table.item(row, 0).text(),
-                "descripcion": self.task_table.item(row, 1).text(),
-                "categoria": self.task_table.item(row, 2).text(),
-                "prioridad": self.task_table.item(row, 3).text(),
-                "estado": self.task_table.item(row, 4).text(),
-                "fecha": self.task_table.item(row, 5).text()
+            print(f"✅ ID recuperado de la tabla: {id_tarea}")
+
+            if not id_tarea:
+                QMessageBox.warning(self, "Error", "❌ El ID de la tarea está vacío en la tabla.")
+                return
+
+            # 📌 Buscar en memoria
+            print(f"📝 Buscando en memoria el ID: {id_tarea}")
+            tarea = self.task_data.get(id_tarea)
+
+            if not tarea:
+                print(f"⚠️ No se encontró la tarea con ID {id_tarea} en memoria.")
+                QMessageBox.warning(self, "Error", f"❌ No se encontró la tarea con ID {id_tarea} en memoria.")
+                return
+
+            print(f"✅ Tarea encontrada en memoria: {tarea}")
+
+            # 📌 Crear el diccionario con los datos correctos
+            tarea_editable = {
+                "idTarea": id_tarea,
+                "titulo": tarea.get("titulo", ""),
+                "descripcion": tarea.get("descripcion", ""),
+                "categoria": tarea.get("categoria", ""),
+                "prioridad": tarea.get("prioridad", ""),
+                "estado": tarea.get("estado", ""),
+                "fecha": tarea.get("fecha", "")
             }
-            print(f"📋 Datos de la tarea a editar: {tarea}")
 
-            # Se crea la ventana de edición pasando la tarea como parámetro
-            self.edit_task_window = EditarTarea(tarea)
-            print("✅ Se creó la ventana `EditarTarea`")
-
-            # Conectamos la señal tarea_guardada para actualizar la tarea en la tabla
+            # 📌 Abrir la ventana de edición con los datos correctos
+            self.edit_task_window = EditarTarea(tarea_editable)
             self.edit_task_window.tarea_guardada.connect(lambda t: self.actualizar_tarea_en_tabla(row, t))
-            print("✅ Conectada la señal `tarea_guardada`")
-
-            # Se muestra la ventana de edición
             self.edit_task_window.show()
-            print("✅ Ventana de edición mostrada correctamente.")
 
         except Exception as e:
             print(f"❌ Error al abrir el editor de tarea: {e}")
+            QMessageBox.critical(self, "Error", f"Error al abrir el editor: {str(e)}")
 
+
+
+
+
+
+    def actualizar_tarea_en_tabla(self, row, tarea):
+        try:
+            print(f"Actualizando tarea en la fila {row}")
+            self.task_table.item(row, 0).setText(tarea["titulo"])
+            self.task_table.item(row, 1).setText(tarea["descripcion"])
+            self.task_table.item(row, 2).setText(tarea["categoria"])
+            self.task_table.item(row, 3).setText(tarea["prioridad"])
+            self.task_table.item(row, 4).setText(tarea["estado"])
+            self.task_table.item(row, 5).setText(tarea["fecha"])
+            print("✅ Tarea actualizada correctamente en la tabla")
+        except Exception as e:
+            print(f"❌ Error al actualizar la tarea en la tabla: {e}")
+            QMessageBox.critical(self, "Error", f"Error al actualizar la tarea: {str(e)}")
 
     def agregar_tarea_desde_formulario(self, tarea):
         try:
@@ -467,15 +515,26 @@ class ModernTodoListApp(QWidget):
 
 
 
-    def agregar_tarea(self, nombre, descripcion, categoria, prioridad, estado, fecha):
+    def agregar_tarea(self, id_tarea, nombre, descripcion, categoria, prioridad, estado, fecha):
         row = self.task_table.rowCount()  # Obtiene el número de filas actuales
         self.task_table.insertRow(row)
 
         # ✅ Convertir la fecha a cadena si es un objeto datetime
         if isinstance(fecha, datetime):
-           fecha = fecha.strftime('%Y-%m-%d')  # Formato legible: Año-Mes-Día
+           fecha = fecha.strftime('%Y-%m-%d')  # Formato Año-Mes-Día
 
-    # Agrega los datos de la tarea a cada celda de la nueva fila
+        # 📌 Guardar el idTarea en memoria para recuperarlo después
+        self.task_data[id_tarea] = {
+            "idTarea": id_tarea,
+            "titulo": nombre,
+            "descripcion": descripcion,
+            "categoria": categoria,
+            "prioridad": prioridad,
+            "estado": estado,
+            "fecha": fecha
+        }
+
+        # ✅ Agrega los datos a cada celda de la fila
         self.task_table.setItem(row, 0, QTableWidgetItem(nombre))
         self.task_table.setItem(row, 1, QTableWidgetItem(descripcion))
         self.task_table.setItem(row, 2, QTableWidgetItem(categoria))
@@ -483,13 +542,20 @@ class ModernTodoListApp(QWidget):
         self.task_table.setItem(row, 4, QTableWidgetItem(estado))
         self.task_table.setItem(row, 5, QTableWidgetItem(str(fecha)))  # Asegura que siempre sea string
 
-    # 📌 Botones de acción (Editar, Completar, Eliminar)
+        # 📌 Agregar el ID en una columna oculta (columna 7)
+        id_item = QTableWidgetItem(id_tarea)
+        self.task_table.setItem(row, 7, id_item)
+        self.task_table.setColumnHidden(7, True)
+
+        print(f"✅ ID almacenado en la tabla: {id_tarea} en la fila {row}")
+
+        # 📌 Botones de acción (Editar, Eliminar)
         action_widget = QWidget()
         action_layout = QHBoxLayout(action_widget)
         action_layout.setContentsMargins(5, 2, 5, 2)
         action_layout.setSpacing(5)
 
-    # Botón Editar
+        # Botón Editar
         btn_edit = QPushButton("Editar")
         btn_edit.setStyleSheet("""
         QPushButton {
@@ -505,27 +571,7 @@ class ModernTodoListApp(QWidget):
         color: white;
         }
         """)
-
-    # 📌 🔥 CORRECCIÓN AQUÍ 🔥 📌
-        btn_edit.clicked.connect(lambda checked, r=row: self.editar_tarea(r))
-
-        # Botón Completar
-        btn_complete = QPushButton("Completar")
-        btn_complete.setStyleSheet("""
-        QPushButton {
-        background-color: white;
-        color: green;
-        border: 1px solid green;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-weight: bold;
-        }
-        QPushButton:hover {
-        background-color: green;
-        color: white;
-        }
-        """)
-        btn_complete.clicked.connect(lambda _, r=row: self.completar_tarea(r))
+        btn_edit.clicked.connect(lambda checked, r=row: self.editar_tarea(r))  # 📌 Recupera el idTarea en editar
 
         # Botón Eliminar
         btn_delete = QPushButton("Eliminar")
@@ -543,18 +589,15 @@ class ModernTodoListApp(QWidget):
         color: white;
         }
         """)
-        btn_delete.clicked.connect(lambda _, r=row: self.eliminar_tarea(r))
+        btn_delete.clicked.connect(lambda checked, r=row: self.eliminar_tarea(r))  # 📌 Recupera el idTarea en eliminar
 
-        # Añade los botones al layout
         action_layout.addWidget(btn_edit)
-        action_layout.addWidget(btn_complete)
         action_layout.addWidget(btn_delete)
-
-        action_widget.setMinimumWidth(300)
+        action_widget.setMinimumWidth(200)
         self.task_table.setCellWidget(row, 6, action_widget)
 
-    def editar_tarea(self, row):
-        print(f"Editar tarea en la fila {row}")
+
+
 
     def completar_tarea(self, row):
         self.task_table.item(row, 4).setText("Completada ✅")

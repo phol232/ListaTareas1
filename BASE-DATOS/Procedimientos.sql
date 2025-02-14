@@ -93,7 +93,8 @@ CREATE PROCEDURE `ListarTodasLasTareas`(
     IN userIdParam VARCHAR(12)
 )
 BEGIN
-    SELECT 
+    SELECT
+        t.idTarea,
         t.titulo,
         t.descripcion,
         IFNULL(c.nombre, 'Sin categoría') AS categoria,

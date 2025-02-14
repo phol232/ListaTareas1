@@ -36,35 +36,43 @@ class TareaDAO:
         tareas = []
         try:
             with self.conexion.cursor(dictionary=True, buffered=True) as cursor:
-                print("📦 Ejecutando ListarTodasLasTareas()")
-                print(f"👤 Cargando tareas para el usuario: {user_id}")
+               print("📦 Ejecutando ListarTodasLasTareas()")
+               print(f"👤 Cargando tareas para el usuario: {user_id}")
 
-                # Llamada al procedimiento almacenado usando callproc()
-                cursor.callproc("ListarTodasLasTareas", (user_id,))
+               # Llamada al procedimiento almacenado
+               cursor.callproc("ListarTodasLasTareas", (user_id,))
 
-                # Recuperar los resultados usando stored_results()
-                resultados = []
-                for result in cursor.stored_results():
-                    # Se agrega cada fila devuelta por el procedimiento
-                    resultados.extend(result.fetchall())
+               # Recuperar los resultados usando stored_results()
+               resultados = []
+               for result in cursor.stored_results():
+                   resultados.extend(result.fetchall())
 
-                print(f"📋 Resultados obtenidos desde MySQL: {resultados}")
+               print(f"📋 Resultados obtenidos desde MySQL: {resultados}")
 
-                for fila in resultados:
-                    tareas.append({
-                        'titulo': fila.get('titulo', ''),
-                        'descripcion': fila.get('descripcion', ''),
-                        'categoria': fila.get('categoria', 'Sin categoría'),
-                        'prioridad': fila.get('prioridad', ''),
-                        'estado': fila.get('estado', ''),
-                        'fecha': fila.get('fecha', '')
-                    })
+               for fila in resultados:
+                 tarea = {
+                    'idTarea': fila.get('idTarea', ''),
+                    'titulo': fila.get('titulo', ''),
+                    'descripcion': fila.get('descripcion', ''),
+                    'categoria': fila.get('categoria', 'Sin categoría'),
+                    'prioridad': fila.get('prioridad', ''),
+                    'estado': fila.get('estado', ''),
+                    'fecha': fila.get('fecha', '')
+                 }
 
-                print(f"✅ Tareas procesadas: {tareas}")
-                return {"success": True, "tareas": tareas}
+                 print(f"🔍 Procesando tarea: {tarea}")  # 📌 Depuración
+                 if not tarea['idTarea']:
+                    print(f"⚠️ Advertencia: Tarea sin ID: {tarea}")
+
+                 tareas.append(tarea)
+
+            print(f"✅ Tareas procesadas correctamente: {tareas}")
+            return {"success": True, "tareas": tareas}
+
         except mysql.connector.Error as e:
             print(f"❌ Error al listar tareas: {e}")
             return {"error": f"❌ Error al listar tareas: {e}"}
+
 
     def actualizar_tarea(self, tarea: Tarea):
         if not self.conexion or not self.conexion.is_connected():
