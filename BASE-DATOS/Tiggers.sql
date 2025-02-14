@@ -20,3 +20,6 @@ DELIMITER ;
 
 SELECT @current_user_id;
 
+
+..
+
