@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 import sys
 from CrearTarea import CategoryForm
-class ModernTodoListApp(QWidget):
+class ModernTodoListApp2(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("TODO - LIST")
@@ -353,6 +353,6 @@ class ModernTodoListApp(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ModernTodoListApp()
+    window = ModernTodoListApp2()
     window.show()
     sys.exit(app.exec())

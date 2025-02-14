@@ -13,6 +13,8 @@ from CrearTarea import CategoryForm
 from src.Capa_Conexion.ConexionMySql import ConexionMySql
 from src.Capa_Negocio.negTareas import NegTareas
 from src.Capa_Negocio.negUsuarios import NegUsuarios
+from src.Capa_Presentacion.EditarTarea import EditarTarea
+
 
 
 class ModernTodoListApp(QWidget):
@@ -20,6 +22,9 @@ class ModernTodoListApp(QWidget):
         super().__init__(*args, **kwargs)
         self.usuario = usuario
         self.neg_tareas = NegTareas()
+
+        self.edit_task_window = None  # ✅ Para la edición de tareas
+        self.new_task_window = None  # ✅ Para la creación de tareas
 
         self.setWindowTitle("TODO - LIST")
         self.setGeometry(100, 100, 1250, 700)
@@ -402,6 +407,43 @@ class ModernTodoListApp(QWidget):
             print(f"❌ Error inesperado: {e}")
             QMessageBox.critical(self, "Error", f"❌ Error inesperado: {str(e)}")
 
+    def editar_tarea(self, row):
+        try:
+            print(f"📝 Intentando abrir ventana de edición para la fila {row}")
+
+            # Si la ventana de edición ya está abierta, se activa y se retorna
+            if self.edit_task_window is not None and self.edit_task_window.isVisible():
+                print("🔁 La ventana de edición ya estaba abierta.")
+                self.edit_task_window.activateWindow()
+                return
+
+            print("✅ Creando nueva ventana para editar tarea...")
+
+            # Recopilamos los datos de la tarea a partir de la fila seleccionada
+            tarea = {
+                "titulo": self.task_table.item(row, 0).text(),
+                "descripcion": self.task_table.item(row, 1).text(),
+                "categoria": self.task_table.item(row, 2).text(),
+                "prioridad": self.task_table.item(row, 3).text(),
+                "estado": self.task_table.item(row, 4).text(),
+                "fecha": self.task_table.item(row, 5).text()
+            }
+            print(f"📋 Datos de la tarea a editar: {tarea}")
+
+            # Se crea la ventana de edición pasando la tarea como parámetro
+            self.edit_task_window = EditarTarea(tarea)
+            print("✅ Se creó la ventana `EditarTarea`")
+
+            # Conectamos la señal tarea_guardada para actualizar la tarea en la tabla
+            self.edit_task_window.tarea_guardada.connect(lambda t: self.actualizar_tarea_en_tabla(row, t))
+            print("✅ Conectada la señal `tarea_guardada`")
+
+            # Se muestra la ventana de edición
+            self.edit_task_window.show()
+            print("✅ Ventana de edición mostrada correctamente.")
+
+        except Exception as e:
+            print(f"❌ Error al abrir el editor de tarea: {e}")
 
 
     def agregar_tarea_desde_formulario(self, tarea):
@@ -433,7 +475,7 @@ class ModernTodoListApp(QWidget):
         if isinstance(fecha, datetime):
            fecha = fecha.strftime('%Y-%m-%d')  # Formato legible: Año-Mes-Día
 
-        # Agrega los datos de la tarea a cada celda de la nueva fila
+    # Agrega los datos de la tarea a cada celda de la nueva fila
         self.task_table.setItem(row, 0, QTableWidgetItem(nombre))
         self.task_table.setItem(row, 1, QTableWidgetItem(descripcion))
         self.task_table.setItem(row, 2, QTableWidgetItem(categoria))
@@ -441,13 +483,13 @@ class ModernTodoListApp(QWidget):
         self.task_table.setItem(row, 4, QTableWidgetItem(estado))
         self.task_table.setItem(row, 5, QTableWidgetItem(str(fecha)))  # Asegura que siempre sea string
 
-        # Botones de acción (Editar, Completar, Eliminar)
+    # 📌 Botones de acción (Editar, Completar, Eliminar)
         action_widget = QWidget()
         action_layout = QHBoxLayout(action_widget)
         action_layout.setContentsMargins(5, 2, 5, 2)
         action_layout.setSpacing(5)
 
-        # Botón Editar
+    # Botón Editar
         btn_edit = QPushButton("Editar")
         btn_edit.setStyleSheet("""
         QPushButton {
@@ -463,7 +505,9 @@ class ModernTodoListApp(QWidget):
         color: white;
         }
         """)
-        btn_edit.clicked.connect(lambda: self.editar_tarea(row))
+
+    # 📌 🔥 CORRECCIÓN AQUÍ 🔥 📌
+        btn_edit.clicked.connect(lambda checked, r=row: self.editar_tarea(r))
 
         # Botón Completar
         btn_complete = QPushButton("Completar")
@@ -477,11 +521,11 @@ class ModernTodoListApp(QWidget):
         font-weight: bold;
         }
         QPushButton:hover {
-          background-color: green;
-          color: white;
+        background-color: green;
+        color: white;
         }
         """)
-        btn_complete.clicked.connect(lambda: self.completar_tarea(row))
+        btn_complete.clicked.connect(lambda _, r=row: self.completar_tarea(r))
 
         # Botón Eliminar
         btn_delete = QPushButton("Eliminar")
@@ -499,7 +543,7 @@ class ModernTodoListApp(QWidget):
         color: white;
         }
         """)
-        btn_delete.clicked.connect(lambda: self.eliminar_tarea(row))
+        btn_delete.clicked.connect(lambda _, r=row: self.eliminar_tarea(r))
 
         # Añade los botones al layout
         action_layout.addWidget(btn_edit)
@@ -508,8 +552,6 @@ class ModernTodoListApp(QWidget):
 
         action_widget.setMinimumWidth(300)
         self.task_table.setCellWidget(row, 6, action_widget)
-
-
 
     def editar_tarea(self, row):
         print(f"Editar tarea en la fila {row}")
